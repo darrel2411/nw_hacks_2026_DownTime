@@ -12,6 +12,8 @@ model User {
   email     String   @unique
   password  String
   createdAt DateTime @default(now())
+  resetTokenHash   String?
+  resetTokenExpiry DateTime?
 
   moods       Mood[]
   reflections Reflection[]
