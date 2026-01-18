@@ -10,6 +10,7 @@ import moodsRoutes from "./routes/moods.js";
 dotenv.config();
 const app = express();
 const prisma = new PrismaClient();
+const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
@@ -18,4 +19,4 @@ app.use("/", healthRoutes());
 app.use("/", usersRoutes(prisma));
 app.use("/", moodsRoutes(prisma));
 
-app.listen(3001, () => console.log("API running on http://localhost:3001"));
+app.listen(3001, () => console.log(`API running on ${PORT}`));
