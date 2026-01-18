@@ -28,6 +28,105 @@ export default function MoodCheckinScreen() {
   const router = useRouter();
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [thoughts, setThoughts] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3001";
+
+  const handleSaveToDb = async () => {
+    try {
+      let token: string | null = null;
+      try {
+        token = await SecureStore.getItemAsync("authToken");
+      } catch (err) {
+        try {
+          token =
+            typeof localStorage !== "undefined"
+              ? localStorage.getItem("authToken")
+              : null;
+        } catch {
+          console.warn("Failed to read auth token", err);
+        }
+      }
+      if (!token) {
+        setError("Please log in again.");
+        setIsLoading(false);
+        return;
+      }
+
+      const res = await fetch(`${apiUrl}/moods`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          feeling: selectedMood,
+          description: thoughts || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body?.error || "Failed to submit mood");
+        return;
+      }
+
+      router.push("/todays-tip");
+    } catch (err) {
+      setError("Network error. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedMood) return;
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      handleSaveToDb();
+
+      const prompt = `The user is feeling ${selectedMood} and thinking: ${thoughts}. Give them a 2 short sentences calming tip to help them sleep.`;
+
+      const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
+
+      const response = await fetch(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: "gpt-3.5-turbo",
+            messages: [
+              {
+                role: "user",
+                content: prompt,
+              },
+            ],
+          }),
+        },
+      );
+
+      const data = await response.json();
+      const aiTip =
+        data.choices?.[0]?.message?.content ||
+        "Take a moment to breathe and relax.";
+
+      router.push({
+        pathname: "/todays-tip",
+        params: { tip: aiTip },
+      });
+    } catch (error) {
+      console.error("Error submitting mood check-in:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -93,10 +192,10 @@ export default function MoodCheckinScreen() {
             <TouchableOpacity
               style={[
                 styles.submitButton,
-                !selectedMood && styles.submitButtonDisabled,
+                (!selectedMood || isLoading) && styles.submitButtonDisabled,
               ]}
-              onPress={() => router.push("/todays-tip")}
-              disabled={!selectedMood}
+              onPress={handleSubmit}
+              disabled={!selectedMood || isLoading}
             >
               <ThemedText style={styles.submitButtonText}>Submit</ThemedText>
             </TouchableOpacity>
