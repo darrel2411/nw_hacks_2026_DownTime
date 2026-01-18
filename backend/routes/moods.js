@@ -233,5 +233,25 @@ Return JSON ONLY:
         res.json(moodToday);
     });
 
+    router.post("/reflections", async (req, res) => {
+        const { aiInsight } = req.body ?? {};
+        if (!aiInsight) {
+            return res.status(400).json({ error: "aiInsight is required" });
+        }
+
+        try {
+            const reflection = await prisma.reflection.create({
+                data: {
+                    userId: req.user.id,
+                    aiInsight,
+                },
+            });
+            res.json(reflection);
+        } catch (error) {
+            console.error("Failed to create reflection:", error);
+            res.status(500).json({ error: "Failed to save reflection" });
+        }
+    });
+
     return router;
 }
