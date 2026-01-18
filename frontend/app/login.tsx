@@ -57,8 +57,34 @@ export default function LoginScreen() {
       const data = await res.json();
       if (data?.token) {
         await saveToken(data.token);
+
+        // Check if user has already checked in today
+        try {
+          const checkInRes = await fetch(`${apiUrl}/moods/today-checkin`, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${data.token}`,
+            },
+          });
+
+          if (checkInRes.ok) {
+            const checkInData = await checkInRes.json();
+            if (checkInData.hasCheckedIn) {
+              router.replace("/todays-tip");
+            } else {
+              router.replace("/mood-checkin");
+            }
+          } else {
+            // If check fails, default to mood-checkin
+            router.replace("/mood-checkin");
+          }
+        } catch (err) {
+          console.warn("Failed to check today's check-in status", err);
+          // Default to mood-checkin on error
+          router.replace("/mood-checkin");
+        }
       }
-      router.replace("/mood-checkin");
     } catch (err) {
       console.warn("Login failed", err);
       setError("Network error. Please try again.");

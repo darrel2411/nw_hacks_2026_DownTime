@@ -12,7 +12,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useRouter } from "expo-router";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import * as SecureStore from "expo-secure-store";
 
 const moods = [
@@ -32,6 +32,52 @@ export default function MoodCheckinScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const apiUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3001";
+
+  // Check if user has already checked in today
+  useEffect(() => {
+    const checkTodayCheckin = async () => {
+      try {
+        let token: string | null = null;
+        try {
+          token = await SecureStore.getItemAsync("authToken");
+        } catch (err) {
+          try {
+            token =
+              typeof localStorage !== "undefined"
+                ? localStorage.getItem("authToken")
+                : null;
+          } catch {
+            console.warn("Failed to read auth token", err);
+          }
+        }
+
+        if (!token) {
+          console.warn("No auth token found");
+          return;
+        }
+
+        const res = await fetch(`${apiUrl}/moods/today-checkin`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.hasCheckedIn) {
+            // User already checked in today, redirect to todays-tip
+            router.replace("/todays-tip");
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to check today's check-in status", err);
+      }
+    };
+
+    checkTodayCheckin();
+  }, []);
 
   const handleSaveToDb = async () => {
     try {

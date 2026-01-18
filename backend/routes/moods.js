@@ -188,5 +188,23 @@ Return JSON ONLY:
         res.json(moods);
     });
 
+    router.get("/moods/today-checkin", async (req, res) => {
+        // Get today's date range (midnight to midnight)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        // Check if user has a mood record created today
+        const moodToday = await prisma.mood.findFirst({
+            where: {
+                userId: req.user.id,
+                createdAt: { gte: today, lt: tomorrow },
+            },
+        });
+
+        res.json({ hasCheckedIn: !!moodToday });
+    });
+
     return router;
 }
