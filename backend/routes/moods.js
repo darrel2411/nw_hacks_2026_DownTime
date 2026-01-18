@@ -206,5 +206,32 @@ Return JSON ONLY:
         res.json({ hasCheckedIn: !!moodToday });
     });
 
+    router.get("/moods/today", async (req, res) => {
+        // Get today's date range (midnight to midnight)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        // Fetch today's mood record with feeling, description, and tip
+        const moodToday = await prisma.mood.findFirst({
+            where: {
+                userId: req.user.id,
+                createdAt: { gte: today, lt: tomorrow },
+            },
+            select: {
+                feeling: true,
+                description: true,
+                tip: true,
+            },
+        });
+
+        if (!moodToday) {
+            return res.status(404).json({ error: "No check-in found for today" });
+        }
+
+        res.json(moodToday);
+    });
+
     return router;
 }

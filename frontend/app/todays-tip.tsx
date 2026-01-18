@@ -1,14 +1,83 @@
-import { StyleSheet, View, TouchableOpacity, ScrollView } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { ImageBackground } from '@/components/image-background';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useState, useEffect } from 'react';
+import * as SecureStore from 'expo-secure-store';
 
 export default function TodaysTipScreen() {
   const router = useRouter();
   const { tip } = useLocalSearchParams<{ tip?: string }>();
-  const displayTip = tip || 'Be kind to yourself today.';
+  const [displayTip, setDisplayTip] = useState(tip || 'Be kind to yourself today.');
+  const [todaysMood, setTodaysMood] = useState<{ feeling: string; description?: string; tip?: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001';
+
+  useEffect(() => {
+    const fetchTodaysMood = async () => {
+      try {
+        let token: string | null = null;
+        try {
+          token = await SecureStore.getItemAsync('authToken');
+        } catch (err) {
+          try {
+            token = typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : null;
+          } catch {
+            console.warn('Failed to read auth token', err);
+          }
+        }
+
+        if (!token) {
+          setIsLoading(false);
+          return;
+        }
+
+        const res = await fetch(`${apiUrl}/moods/today`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setTodaysMood(data);
+          // Use the tip from today's mood if available, otherwise use the passed tip or default
+          if (data.tip) {
+            setDisplayTip(data.tip);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to fetch today\'s mood', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTodaysMood();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <ImageBackground
+          source={require('@/assets/images/tip-background.png')}
+          style={styles.backgroundImage}
+          resizeMode="cover"
+        >
+          <View style={styles.overlay}>
+            <View style={[styles.content, styles.loadingContainer]}>
+              <ActivityIndicator size="large" color="#4A90E2" />
+            </View>
+          </View>
+        </ImageBackground>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -28,7 +97,11 @@ export default function TodaysTipScreen() {
 
           <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
             <ThemedText style={styles.title}>Today's Tip</ThemedText>
-            <ThemedText style={styles.tipText}>Be kind to yourself today.</ThemedText>
+            {todaysMood && (
+              <ThemedText style={styles.moodLabel}>
+                Based on your {todaysMood.feeling} mood
+              </ThemedText>
+            )}
 
             <View style={styles.promptBox}>
               <ThemedText style={styles.promptText}>
@@ -150,5 +223,16 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '600',
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  moodLabel: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 20,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });
