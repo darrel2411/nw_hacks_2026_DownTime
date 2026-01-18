@@ -34,7 +34,7 @@ export default function TodaysTipScreen() {
 
             <View style={styles.promptBox}>
               <ThemedText style={styles.promptText}>
-                Write down one thing you're grateful for.
+                {displayTip}
               </ThemedText>
             </View>
           </ScrollView>
