@@ -2,11 +2,13 @@ import { StyleSheet, View, TouchableOpacity, ScrollView } from 'react-native';
 import { ImageBackground } from '@/components/image-background';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export default function TodaysTipScreen() {
   const router = useRouter();
+  const { tip } = useLocalSearchParams<{ tip?: string }>();
+  const displayTip = tip || 'Be kind to yourself today.';
 
   return (
     <View style={styles.container}>
