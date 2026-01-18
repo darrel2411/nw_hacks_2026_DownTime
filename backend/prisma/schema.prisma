@@ -23,6 +23,7 @@ model Mood {
   id          Int      @id @default(autoincrement())
   feeling     String
   description String?
+  tip         String?
   createdAt   DateTime @default(now())
 
   userId Int
