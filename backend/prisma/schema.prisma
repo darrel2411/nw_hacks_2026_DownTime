@@ -33,8 +33,12 @@ model Mood {
 model Reflection {
   id        Int      @id @default(autoincrement())
   aiInsight String
+  tryThis   String?          // optional but recommended (since you return it)
+  weekStart DateTime         // NEW: Monday 00:00 UTC
   createdAt DateTime @default(now())
 
   userId Int
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStart]) // ✅ 1 reflection per user per week
 }
