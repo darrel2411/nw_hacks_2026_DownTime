@@ -18,7 +18,7 @@ export default function WeeklyReflectionScreen() {
   const [weeklyData, setWeeklyData] = useState<WeeklyData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
+  const [selectedWeekStart, setSelectedWeekStart] = useState<Date | null>(null);
 
   const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -38,7 +38,68 @@ export default function WeeklyReflectionScreen() {
     return { backgroundColor: color };
   };
 
+  // Helper function to get week range based on a start date
+  const getWeekRange = (baseDate: Date = new Date()) => {
+    const start = new Date(baseDate);
+    start.setHours(0, 0, 0, 0);
+    const day = start.getDay();
+    const diffToMonday = (day + 6) % 7;
+    start.setDate(start.getDate() - diffToMonday);
+    return start;
+  };
+
+  // Navigate to previous week
+  const goToPreviousWeek = () => {
+    const prevWeek = new Date(selectedWeekStart || new Date());
+    prevWeek.setDate(prevWeek.getDate() - 7);
+    setSelectedWeekStart(prevWeek);
+  };
+
+  // Navigate to next week
+  const goToNextWeek = () => {
+    const nextWeek = new Date(selectedWeekStart || new Date());
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    // Don't go beyond current week
+    const currentWeekStart = getWeekRange();
+    if (nextWeek <= currentWeekStart) {
+      setSelectedWeekStart(nextWeek);
+    }
+  };
+
+  // Format week display
+  const formatWeekDisplay = () => {
+    const weekStart = selectedWeekStart || getWeekRange();
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    const startStr = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const endStr = weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return `${startStr} - ${endStr}`;
+  };
+
+  const isCurrentWeek = () => {
+    if (!selectedWeekStart) return true;
+    const currentWeekStart = getWeekRange();
+    return selectedWeekStart.getTime() === currentWeekStart.getTime();
+  };
+
+  const canGoToNextWeek = () => {
+    if (!selectedWeekStart) return false;
+    const nextWeek = new Date(selectedWeekStart);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    const currentWeekStart = getWeekRange();
+    return nextWeek <= currentWeekStart;
+  };
+
   useEffect(() => {
+    // Initialize to current week if not set
+    if (!selectedWeekStart) {
+      setSelectedWeekStart(getWeekRange());
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!selectedWeekStart) return;
+
     const fetchWeeklyInsight = async () => {
       try {
         let token: string | null = null;
@@ -58,7 +119,8 @@ export default function WeeklyReflectionScreen() {
           return;
         }
 
-        const res = await fetch(`${apiUrl}/moods/weekly-insight`, {
+        const weekStartParam = selectedWeekStart.toISOString().split('T')[0];
+        const res = await fetch(`${apiUrl}/moods/weekly-insight?weekStart=${weekStartParam}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -81,54 +143,7 @@ export default function WeeklyReflectionScreen() {
     };
 
     fetchWeeklyInsight();
-  }, []);
-
-  const saveReflection = async () => {
-    if (!weeklyData || isSaving) return;
-
-    setIsSaving(true);
-    try {
-      let token: string | null = null;
-      try {
-        token = await SecureStore.getItemAsync('authToken');
-      } catch (err) {
-        try {
-          token = typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : null;
-        } catch {
-          console.warn('Failed to read auth token', err);
-        }
-      }
-
-      if (!token) {
-        setError('Please log in again.');
-        return;
-      }
-
-      const res = await fetch(`${apiUrl}/reflections`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          aiInsight: weeklyData.insight,
-        }),
-      });
-
-      if (res.ok) {
-        // Reflection saved successfully
-        console.log('Reflection saved');
-      } else {
-        const errData = await res.json().catch(() => ({}));
-        setError(errData?.error || 'Failed to save reflection');
-      }
-    } catch (err) {
-      console.warn('Failed to save reflection', err);
-      setError('Network error. Please try again.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  }, [selectedWeekStart]);
 
   if (isLoading) {
     return (
@@ -178,6 +193,26 @@ export default function WeeklyReflectionScreen() {
         <ThemedText style={styles.title}>Weekly Reflection</ThemedText>
         <ThemedText style={styles.subtitle}>Here's a look at your week</ThemedText>
 
+        {/* Week Navigation */}
+        <View style={styles.weekNavigationContainer}>
+          <TouchableOpacity
+            onPress={goToPreviousWeek}
+            style={styles.navButton}
+          >
+            <IconSymbol name="chevron.left" size={24} color="#4A90E2" />
+          </TouchableOpacity>
+          
+          <ThemedText style={styles.weekDisplay}>{formatWeekDisplay()}</ThemedText>
+          
+          <TouchableOpacity
+            onPress={goToNextWeek}
+            disabled={!canGoToNextWeek()}
+            style={[styles.navButton, !canGoToNextWeek() && styles.navButtonDisabled]}
+          >
+            <IconSymbol name="chevron.right" size={24} color={canGoToNextWeek() ? '#4A90E2' : '#CCCCCC'} />
+          </TouchableOpacity>
+        </View>
+
         {weeklyData.breakdown && Object.keys(weeklyData.breakdown).length > 0 && (
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Summary</ThemedText>
@@ -209,18 +244,6 @@ export default function WeeklyReflectionScreen() {
             <ThemedText style={styles.tryThisText}>{weeklyData.tryThis}</ThemedText>
           </View>
         </View>
-
-        <TouchableOpacity
-          style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
-          onPress={saveReflection}
-          disabled={isSaving}
-        >
-          {isSaving ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <ThemedText style={styles.saveButtonText}>Save This Reflection</ThemedText>
-          )}
-        </TouchableOpacity>
       </ScrollView>
     </ThemedView>
   );
@@ -274,7 +297,37 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 18,
     color: '#666',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  weekNavigationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 30,
+    paddingHorizontal: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  navButton: {
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  navButtonDisabled: {
+    opacity: 0.5,
+  },
+  weekDisplay: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+    flex: 1,
     textAlign: 'center',
   },
   section: {
