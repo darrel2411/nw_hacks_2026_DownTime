@@ -19,4 +19,6 @@ app.use("/", healthRoutes());
 app.use("/", usersRoutes(prisma));
 app.use("/", moodsRoutes(prisma));
 
-app.listen(3001, () => console.log(`API running on ${PORT}`));
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`API running on ${PORT}`);
+});
