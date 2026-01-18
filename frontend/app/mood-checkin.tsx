@@ -1,25 +1,130 @@
-import { StyleSheet, View, TextInput, TouchableOpacity, ScrollView, Text } from 'react-native';
-import { ImageBackground } from '@/components/image-background';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { useRouter } from 'expo-router';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useState } from 'react';
+import {
+  StyleSheet,
+  View,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  Text,
+} from "react-native";
+import { ImageBackground } from "@/components/image-background";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { useRouter } from "expo-router";
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { useState, useEffect } from "react";
+import * as SecureStore from "expo-secure-store";
 
 const moods = [
-  { emoji: '😊', label: 'Great', color: '#FFD700' },
-  { emoji: '😐', label: 'Okay', color: '#87CEEB' },
-  { emoji: '😑', label: 'Meh', color: '#D3D3D3' },
-  { emoji: '😢', label: 'Sad', color: '#87CEFA' },
-  { emoji: '😠', label: 'Stressed', color: '#FF6B6B' },
-  { emoji: '😴', label: 'Tired', color: '#9370DB' },
+  { emoji: "😊", label: "Great", color: "#FFD700" },
+  { emoji: "😐", label: "Okay", color: "#87CEEB" },
+  { emoji: "😑", label: "Meh", color: "#D3D3D3" },
+  { emoji: "😢", label: "Sad", color: "#87CEFA" },
+  { emoji: "😠", label: "Stressed", color: "#FF6B6B" },
+  { emoji: "😴", label: "Tired", color: "#9370DB" },
 ];
 
 export default function MoodCheckinScreen() {
   const router = useRouter();
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
-  const [thoughts, setThoughts] = useState('');
+  const [thoughts, setThoughts] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3001";
+
+  // Check if user has already checked in today
+  useEffect(() => {
+    const checkTodayCheckin = async () => {
+      try {
+        let token: string | null = null;
+        try {
+          token = await SecureStore.getItemAsync("authToken");
+        } catch (err) {
+          try {
+            token =
+              typeof localStorage !== "undefined"
+                ? localStorage.getItem("authToken")
+                : null;
+          } catch {
+            console.warn("Failed to read auth token", err);
+          }
+        }
+
+        if (!token) {
+          console.warn("No auth token found");
+          return;
+        }
+
+        const res = await fetch(`${apiUrl}/moods/today-checkin`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.hasCheckedIn) {
+            // User already checked in today, redirect to todays-tip
+            router.replace("/todays-tip");
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to check today's check-in status", err);
+      }
+    };
+
+    checkTodayCheckin();
+  }, []);
+
+  const handleSaveToDb = async (aiTip: string) => {
+    try {
+      let token: string | null = null;
+      try {
+        token = await SecureStore.getItemAsync("authToken");
+      } catch (err) {
+        try {
+          token =
+            typeof localStorage !== "undefined"
+              ? localStorage.getItem("authToken")
+              : null;
+        } catch {
+          console.warn("Failed to read auth token", err);
+        }
+      }
+      if (!token) {
+        setError("Please log in again.");
+        setIsLoading(false);
+        return;
+      }
+
+      const res = await fetch(`${apiUrl}/moods`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          feeling: selectedMood,
+          description: thoughts || undefined,
+          tip: aiTip,
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body?.error || "Failed to submit mood");
+        return;
+      }
+
+      // router.push("/todays-tip");
+    } catch (err) {
+      setError("Network error. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!selectedMood) return;
@@ -30,32 +135,40 @@ export default function MoodCheckinScreen() {
 
       const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
 
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
+      const response = await fetch(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: "gpt-3.5-turbo",
+            messages: [
+              {
+                role: "user",
+                content: prompt,
+              },
+            ],
+          }),
         },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [
-            {
-              role: 'user',
-              content: prompt,
-            },
-          ],
-        }),
-      });
+      );
 
       const data = await response.json();
-      const aiTip = data.choices?.[0]?.message?.content || 'Take a moment to breathe and relax.';
+      const aiTip =
+        data.choices?.[0]?.message?.content ||
+        "Take a moment to breathe and relax.";
+
+      // save response to Mood Table
+      handleSaveToDb(aiTip);
 
       router.push({
-        pathname: '/todays-tip',
+        pathname: "/todays-tip",
         params: { tip: aiTip },
       });
     } catch (error) {
-      console.error('Error submitting mood check-in:', error);
+      console.error("Error submitting mood check-in:", error);
     } finally {
       setIsLoading(false);
     }
@@ -64,13 +177,16 @@ export default function MoodCheckinScreen() {
   return (
     <View style={styles.container}>
       <ImageBackground
-        source={require('@/assets/images/background.png')}
+        source={require("@/assets/images/background.png")}
         style={styles.backgroundImage}
         resizeMode="cover"
       >
         <View style={styles.overlay}>
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.backButton}
+            >
               <IconSymbol name="chevron.left" size={24} color="#000" />
             </TouchableOpacity>
             <ThemedText style={styles.headerTitle}>DownTime</ThemedText>
@@ -79,8 +195,13 @@ export default function MoodCheckinScreen() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-            <ThemedText style={styles.question}>How are you feeling today?</ThemedText>
+          <ScrollView
+            style={styles.content}
+            contentContainerStyle={styles.contentContainer}
+          >
+            <ThemedText style={styles.question}>
+              How are you feeling today?
+            </ThemedText>
 
             <View style={styles.moodContainer}>
               {moods.map((mood, index) => (
@@ -93,14 +214,18 @@ export default function MoodCheckinScreen() {
                   ]}
                   onPress={() => setSelectedMood(mood.label)}
                 >
-                  <Text style={styles.moodEmoji} allowFontScaling={false}>{mood.emoji}</Text>
+                  <Text style={styles.moodEmoji} allowFontScaling={false}>
+                    {mood.emoji}
+                  </Text>
                   <ThemedText style={styles.moodLabel}>{mood.label}</ThemedText>
                 </TouchableOpacity>
               ))}
             </View>
 
             <View style={styles.thoughtsContainer}>
-              <ThemedText style={styles.thoughtsLabel}>What's on your mind?</ThemedText>
+              <ThemedText style={styles.thoughtsLabel}>
+                What's on your mind?
+              </ThemedText>
               <TextInput
                 style={styles.thoughtsInput}
                 placeholder="Feeling overwhelmed with work today."
@@ -113,12 +238,15 @@ export default function MoodCheckinScreen() {
             </View>
 
             <TouchableOpacity
-              style={[styles.submitButton, (!selectedMood || isLoading) && styles.submitButtonDisabled]}
+              style={[
+                styles.submitButton,
+                (!selectedMood || isLoading) && styles.submitButtonDisabled,
+              ]}
               onPress={handleSubmit}
               disabled={!selectedMood || isLoading}
             >
               <ThemedText style={styles.submitButtonText}>
-                {isLoading ? 'Generating...' : 'Submit'}
+                {isLoading ? "Generating..." : "Submit"}
               </ThemedText>
             </TouchableOpacity>
           </ScrollView>
@@ -131,25 +259,25 @@ export default function MoodCheckinScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F6CFC0',
+    backgroundColor: "#F6CFC0",
   },
   backgroundImage: {
     flex: 1,
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     marginBottom: 10,
@@ -157,19 +285,19 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: "bold",
+    color: "#000",
   },
   menuButton: {
     width: 40,
     height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   content: {
     flex: 1,
@@ -180,33 +308,33 @@ const styles = StyleSheet.create({
   },
   question: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#2C2C2C',
+    fontWeight: "bold",
+    color: "#2C2C2C",
     marginTop: 5,
     marginBottom: 30,
-    textAlign: 'center',
+    textAlign: "center",
     paddingTop: 5,
-    textShadowColor: 'rgba(255, 255, 255, 0.5)',
+    textShadowColor: "rgba(255, 255, 255, 0.5)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
   moodContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
     marginBottom: 40,
   },
   moodButton: {
-    width: '30%',
+    width: "30%",
     aspectRatio: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#E0E0E0',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderColor: "#E0E0E0",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 15,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -219,48 +347,48 @@ const styles = StyleSheet.create({
   moodEmoji: {
     fontSize: 40,
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
     includeFontPadding: false,
   },
   moodLabel: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#000',
+    fontWeight: "500",
+    color: "#000",
   },
   thoughtsContainer: {
     marginBottom: 30,
   },
   thoughtsLabel: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
+    fontWeight: "600",
+    color: "#000",
     marginBottom: 12,
   },
   thoughtsInput: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    color: '#000',
+    color: "#000",
     minHeight: 120,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: "#E0E0E0",
   },
   submitButton: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: "#4A90E2",
     borderRadius: 12,
     paddingVertical: 16,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 20,
   },
   submitButtonDisabled: {
-    backgroundColor: '#CCCCCC',
+    backgroundColor: "#CCCCCC",
     opacity: 0.6,
   },
   submitButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

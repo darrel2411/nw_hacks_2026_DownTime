@@ -20,13 +20,13 @@ export default function moodsRoutes(prisma) {
     };
 
     router.post("/moods", async (req, res) => {
-        const { feeling, description } = req.body ?? {};
+        const { feeling, description, tip } = req.body ?? {};
         if (!feeling) {
             return res.status(400).json({ error: "Feeling is required" });
         }
 
         const mood = await prisma.mood.create({
-            data: { userId: req.user.id, feeling, description },
+            data: { userId: req.user.id, feeling, description, tip },
         });
         res.json(mood);
     });
