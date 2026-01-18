@@ -28,6 +28,12 @@ export default function usersRoutes(prisma) {
         return crypto.timingSafeEqual(Buffer.from(hashed, "hex"), Buffer.from(derived, "hex"));
     };
 
+    const generateResetToken = () => {
+        const raw = crypto.randomBytes(32).toString("hex");
+        const hash = crypto.createHash("sha256").update(raw).digest("hex");
+        return { raw, hash };
+    };
+
     router.post("/signup", async (req, res) => {
         const { email, password } = req.body ?? {};
         if (!email || !password) {
@@ -62,6 +68,61 @@ export default function usersRoutes(prisma) {
 
         const token = issueToken(user.id);
         res.json({ user: sanitizeUser(user), token });
+    });
+
+    router.post("/forgot-password", async (req, res) => {
+        const { email } = req.body ?? {};
+        if (!email) {
+            return res.status(400).json({ error: "Email is required" });
+        }
+
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user) {
+            // Don't reveal whether the email exists
+            return res.json({ ok: true });
+        }
+
+        const { raw, hash } = generateResetToken();
+        const expiry = new Date(Date.now() + 1000 * 60 * 30); // 30 minutes
+
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { resetTokenHash: hash, resetTokenExpiry: expiry },
+        });
+
+        // In production, email the raw token. For now, return it so you can test.
+        res.json({ ok: true, resetToken: raw, expiresAt: expiry.toISOString() });
+    });
+
+    router.post("/reset-password", async (req, res) => {
+        const { token, password } = req.body ?? {};
+        if (!token || !password) {
+            return res.status(400).json({ error: "Token and new password required" });
+        }
+
+        const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+        const user = await prisma.user.findFirst({
+            where: {
+                resetTokenHash: tokenHash,
+                resetTokenExpiry: { gt: new Date() },
+            },
+        });
+
+        if (!user) {
+            return res.status(400).json({ error: "Invalid or expired token" });
+        }
+
+        const hashedPassword = hashPassword(password);
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                password: hashedPassword,
+                resetTokenHash: null,
+                resetTokenExpiry: null,
+            },
+        });
+
+        res.json({ ok: true });
     });
 
     return router;
