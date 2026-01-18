@@ -1,4 +1,4 @@
-import { StyleSheet, View, TextInput, TouchableOpacity, ScrollView, Text } from 'react-native';
+import { StyleSheet, View, TextInput, TouchableOpacity, ScrollView, Text, ImageBackground } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useRouter } from 'expo-router';
@@ -20,18 +20,24 @@ export default function MoodCheckinScreen() {
   const [thoughts, setThoughts] = useState('');
 
   return (
-    <ThemedView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <IconSymbol name="chevron.left" size={24} color="#000" />
-        </TouchableOpacity>
-        <ThemedText style={styles.headerTitle}>DownTime</ThemedText>
-        <TouchableOpacity style={styles.menuButton}>
-          <IconSymbol name="line.3.horizontal" size={24} color="#000" />
-        </TouchableOpacity>
-      </View>
+    <View style={styles.container}>
+      <ImageBackground
+        source={require('@/assets/images/background.png')}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      >
+        <View style={styles.overlay}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <IconSymbol name="chevron.left" size={24} color="#000" />
+            </TouchableOpacity>
+            <ThemedText style={styles.headerTitle}>DownTime</ThemedText>
+            <TouchableOpacity style={styles.menuButton}>
+              <IconSymbol name="line.3.horizontal" size={24} color="#000" />
+            </TouchableOpacity>
+          </View>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+          <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         <ThemedText style={styles.question}>How are you feeling today?</ThemedText>
 
         <View style={styles.moodContainer}>
@@ -69,17 +75,27 @@ export default function MoodCheckinScreen() {
           onPress={() => router.push('/todays-tip')}
           disabled={!selectedMood}
         >
-          <ThemedText style={styles.submitButtonText}>Submit</ThemedText>
-        </TouchableOpacity>
-      </ScrollView>
-    </ThemedView>
+            <ThemedText style={styles.submitButtonText}>Submit</ThemedText>
+          </TouchableOpacity>
+        </ScrollView>
+        </View>
+      </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+  },
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   header: {
     flexDirection: 'row',
@@ -88,7 +104,10 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    marginBottom: 10,
   },
   backButton: {
     width: 40,
@@ -116,9 +135,12 @@ const styles = StyleSheet.create({
   question: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#2C2C2C',
     marginBottom: 30,
     textAlign: 'center',
+    textShadowColor: 'rgba(255, 255, 255, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   moodContainer: {
     flexDirection: 'row',

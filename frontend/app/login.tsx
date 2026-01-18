@@ -13,7 +13,7 @@ export default function LoginScreen() {
   return (
     <ThemedView style={styles.container}>
       <ImageBackground
-        source={require('@/assets/images/partial-react-logo.png')}
+        source={require('@/assets/images/background.png')}
         style={styles.backgroundImage}
         resizeMode="cover"
       >
