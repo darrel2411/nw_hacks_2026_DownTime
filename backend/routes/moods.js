@@ -64,15 +64,18 @@ export default function moodsRoutes(prisma) {
         if (!range) {
             return res.status(400).json({ error: "Invalid weekStart date" });
         }
-        const { start, end } = range;
 
-        // 1) Pull moods for the week (include description)
+        const { start, end } = range;
+        const now = new Date();
+        const weekFinished = now >= end;
+
+        // 1) Pull moods for the week (include description + tip)
         const moods = await prisma.mood.findMany({
             where: {
                 userId: req.user.id,
                 createdAt: { gte: start, lt: end },
             },
-            select: { feeling: true, description: true, createdAt: true },
+            select: { feeling: true, description: true, tip: true, createdAt: true },
             orderBy: { createdAt: "asc" },
         });
 
@@ -83,22 +86,26 @@ export default function moodsRoutes(prisma) {
                 breakdown: {},
                 insight:
                     "No check-ins yet for this week. Add a few moods and I’ll generate a weekly insight for you.",
-                tryThis: "Do a 30-second brain dump: write one thing on your mind, then close your eyes.",
+                tryThis:
+                    "Do a 30-second brain dump: write one thing on your mind, then close your eyes.",
+                saved: false,
+                weekFinished,
             });
         }
 
-        // 2) Build breakdown (same as your summary endpoint)
+        // 2) Breakdown
         const breakdown = moods.reduce((acc, { feeling }) => {
             const key = feeling || "unknown";
             acc[key] = (acc[key] || 0) + 1;
             return acc;
         }, {});
 
-        // 3) Convert logs into compact bullets (keep token usage low)
+        // 3) Compact logs to keep tokens low
         const logs = moods.map((m) => {
             const date = new Date(m.createdAt).toISOString().slice(0, 10);
             const desc = (m.description || "").replace(/\s+/g, " ").trim();
-            return `- ${date} | ${m.feeling} | ${desc}`;
+            const tip = (m.tip || "").replace(/\s+/g, " ").trim();
+            return `- ${date} | feeling: ${m.feeling} | note: ${desc} | tip: ${tip}`;
         });
 
         // 4) Prompt OpenAI
@@ -149,16 +156,49 @@ Return JSON ONLY:
             } catch {
                 ai = {
                     insight: raw,
-                    tryThis: "Try 5 slow breaths: inhale 4 seconds, exhale 6 seconds, repeat five times.",
+                    tryThis:
+                        "Try 5 slow breaths: inhale 4 seconds, exhale 6 seconds, repeat five times.",
                 };
+            }
+
+            const insight =
+                ai.insight || "You showed up for yourself this week.";
+            const tryThis =
+                ai.tryThis || "Write one sentence about what can wait until tomorrow.";
+
+            // 5) Save ONLY when week is finished
+            let saved = false;
+            if (weekFinished) {
+                await prisma.reflection.upsert({
+                    where: {
+                        userId_weekStart: {
+                            userId: req.user.id,
+                            weekStart: start,
+                        },
+                    },
+                    update: {
+                        aiInsight: insight,
+                        tryThis,
+                    },
+                    create: {
+                        userId: req.user.id,
+                        weekStart: start,
+                        aiInsight: insight,
+                        tryThis,
+                    },
+                });
+
+                saved = true;
             }
 
             return res.json({
                 range: { start: start.toISOString(), end: end.toISOString() },
                 total: moods.length,
                 breakdown,
-                insight: ai.insight || "You showed up for yourself this week.",
-                tryThis: ai.tryThis || "Write one sentence about what can wait until tomorrow.",
+                insight,
+                tryThis,
+                saved,
+                weekFinished,
             });
         } catch (error) {
             console.error("weekly-insight error:", error);
