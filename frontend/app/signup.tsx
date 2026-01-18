@@ -1,4 +1,5 @@
 import { StyleSheet, View, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 import { Image } from 'expo-image';
 import { ImageBackground } from '@/components/image-background';
 import { ThemedText } from '@/components/themed-text';
@@ -16,6 +17,18 @@ export default function SignupScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001';
+
+  const saveToken = async (token: string) => {
+    try {
+      await SecureStore.setItemAsync('authToken', token);
+    } catch (err) {
+      try {
+        localStorage.setItem('authToken', token);
+      } catch {
+        console.warn('Failed to store auth token', err);
+      }
+    }
+  };
 
   const handleSignup = async () => {
     if (!email || !password || password !== retypePassword) return;
@@ -35,7 +48,10 @@ export default function SignupScreen() {
         return;
       }
 
-      await res.json();
+      const data = await res.json();
+      if (data?.token) {
+        await saveToken(data.token);
+      }
       router.replace('/mood-checkin');
     } catch (err) {
       setError('Network error. Please try again.');
