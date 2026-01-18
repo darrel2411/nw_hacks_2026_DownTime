@@ -1,4 +1,5 @@
-import { StyleSheet, View, TextInput, TouchableOpacity, ScrollView, Text, ImageBackground } from 'react-native';
+import { StyleSheet, View, TextInput, TouchableOpacity, ScrollView, Text } from 'react-native';
+import { ImageBackground } from '@/components/image-background';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useRouter } from 'expo-router';
@@ -87,6 +88,7 @@ export default function MoodCheckinScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F6CFC0',
   },
   backgroundImage: {
     flex: 1,

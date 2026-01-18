@@ -7,10 +7,11 @@ import { useRouter } from 'expo-router';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useState } from 'react';
 
-export default function LoginScreen() {
+export default function SignupScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [retypePassword, setRetypePassword] = useState('');
 
   return (
     <ThemedView style={styles.container}>
@@ -29,7 +30,7 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.content}>
-            <ThemedText style={styles.title}>Log in to continue</ThemedText>
+            <ThemedText style={styles.title}>Create an account</ThemedText>
 
             <View style={styles.inputContainer}>
               <TextInput
@@ -54,15 +55,23 @@ export default function LoginScreen() {
               />
             </View>
 
-            <TouchableOpacity style={styles.forgotPassword}>
-              <ThemedText style={styles.forgotPasswordText}>Forgot password?</ThemedText>
-            </TouchableOpacity>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Retype Password"
+                placeholderTextColor="#999"
+                value={retypePassword}
+                onChangeText={setRetypePassword}
+                secureTextEntry
+              />
+            </View>
 
             <TouchableOpacity
-              style={styles.loginButton}
+              style={[styles.signupButton, (!email || !password || password !== retypePassword) && styles.signupButtonDisabled]}
               onPress={() => router.push('/mood-checkin')}
+              disabled={!email || !password || password !== retypePassword}
             >
-              <ThemedText style={styles.loginButtonText}>Log In</ThemedText>
+              <ThemedText style={styles.signupButtonText}>Sign Up</ThemedText>
             </TouchableOpacity>
 
             <View style={styles.separator}>
@@ -80,8 +89,8 @@ export default function LoginScreen() {
               <ThemedText style={styles.googleButtonText}>Continue with Google</ThemedText>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.signUpLink} onPress={() => router.push('/signup')}>
-              <ThemedText style={styles.signUpText}>New here? Sign Up</ThemedText>
+            <TouchableOpacity style={styles.loginLink} onPress={() => router.push('/login')}>
+              <ThemedText style={styles.loginText}>Already have an account? Log In</ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -151,22 +160,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#000',
   },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 30,
-  },
-  forgotPasswordText: {
-    color: '#4A90E2',
-    fontSize: 14,
-  },
-  loginButton: {
+  signupButton: {
     backgroundColor: '#4A90E2',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
+    marginTop: 10,
     marginBottom: 30,
   },
-  loginButtonText: {
+  signupButtonDisabled: {
+    backgroundColor: '#CCCCCC',
+    opacity: 0.6,
+  },
+  signupButtonText: {
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '600',
@@ -216,11 +222,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 10,
   },
-  signUpLink: {
+  loginLink: {
     marginTop: 20,
     alignItems: 'center',
   },
-  signUpText: {
+  loginText: {
     color: '#4A90E2',
     fontSize: 16,
     fontWeight: '500',
