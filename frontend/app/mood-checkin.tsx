@@ -18,6 +18,47 @@ export default function MoodCheckinScreen() {
   const router = useRouter();
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [thoughts, setThoughts] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!selectedMood) return;
+
+    setIsLoading(true);
+    try {
+      const prompt = `The user is feeling ${selectedMood} and thinking: ${thoughts}. Give them a 2 short sentences calming tip to help them sleep.`;
+
+      const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+        }),
+      });
+
+      const data = await response.json();
+      const aiTip = data.choices?.[0]?.message?.content || 'Take a moment to breathe and relax.';
+
+      router.push({
+        pathname: '/todays-tip',
+        params: { tip: aiTip },
+      });
+    } catch (error) {
+      console.error('Error submitting mood check-in:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -71,11 +112,13 @@ export default function MoodCheckinScreen() {
         </View>
 
         <TouchableOpacity
-          style={[styles.submitButton, !selectedMood && styles.submitButtonDisabled]}
-          onPress={() => router.push('/todays-tip')}
-          disabled={!selectedMood}
+          style={[styles.submitButton, (!selectedMood || isLoading) && styles.submitButtonDisabled]}
+          onPress={handleSubmit}
+          disabled={!selectedMood || isLoading}
         >
-            <ThemedText style={styles.submitButtonText}>Submit</ThemedText>
+            <ThemedText style={styles.submitButtonText}>
+              {isLoading ? 'Generating...' : 'Submit'}
+            </ThemedText>
           </TouchableOpacity>
         </ScrollView>
         </View>

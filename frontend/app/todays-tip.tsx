@@ -1,11 +1,13 @@
 import { StyleSheet, View, TouchableOpacity, ScrollView } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export default function TodaysTipScreen() {
   const router = useRouter();
+  const { tip } = useLocalSearchParams<{ tip?: string }>();
+  const displayTip = tip || 'Be kind to yourself today.';
 
   return (
     <ThemedView style={styles.container}>
@@ -21,7 +23,7 @@ export default function TodaysTipScreen() {
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         <ThemedText style={styles.title}>Today's Tip</ThemedText>
-        <ThemedText style={styles.tipText}>Be kind to yourself today.</ThemedText>
+        <ThemedText style={styles.tipText}>{displayTip}</ThemedText>
 
         <View style={styles.promptBox}>
           <ThemedText style={styles.promptText}>
