@@ -1,4 +1,4 @@
-import { StyleSheet, View, TextInput, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { ImageBackground } from '@/components/image-background';
 import { ThemedText } from '@/components/themed-text';
@@ -11,6 +11,38 @@ export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001';
+
+  const handleLogin = async () => {
+    if (!email || !password) return;
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`${apiUrl}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const message = body?.error || 'Failed to log in';
+        setError(message);
+        return;
+      }
+
+      await res.json();
+      router.replace('/mood-checkin');
+    } catch (err) {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <ThemedView style={styles.container}>
@@ -59,11 +91,21 @@ export default function LoginScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.loginButton}
-              onPress={() => router.push('/mood-checkin')}
+              style={[
+                styles.loginButton,
+                (!email || !password || loading) && styles.loginButtonDisabled,
+              ]}
+              onPress={handleLogin}
+              disabled={!email || !password || loading}
             >
-              <ThemedText style={styles.loginButtonText}>Log In</ThemedText>
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <ThemedText style={styles.loginButtonText}>Log In</ThemedText>
+              )}
             </TouchableOpacity>
+
+            {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
 
             <View style={styles.separator}>
               <View style={styles.separatorLine} />
@@ -166,6 +208,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 30,
   },
+  loginButtonDisabled: {
+    backgroundColor: '#CCCCCC',
+    opacity: 0.6,
+  },
   loginButtonText: {
     color: '#FFFFFF',
     fontSize: 18,
@@ -224,5 +270,12 @@ const styles = StyleSheet.create({
     color: '#4A90E2',
     fontSize: 16,
     fontWeight: '500',
+  },
+  errorText: {
+    color: '#ffefef',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 20,
+    fontWeight: '600',
   },
 });
