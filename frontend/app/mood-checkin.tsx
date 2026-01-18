@@ -74,54 +74,52 @@ export default function MoodCheckinScreen() {
               <IconSymbol name="chevron.left" size={24} color="#000" />
             </TouchableOpacity>
             <ThemedText style={styles.headerTitle}>DownTime</ThemedText>
-            <TouchableOpacity style={styles.menuButton}>
-              <IconSymbol name="line.3.horizontal" size={24} color="#000" />
-            </TouchableOpacity>
+            <View style={styles.placeholder} />
           </View>
 
           <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        <ThemedText style={styles.question}>How are you feeling today?</ThemedText>
+            <ThemedText style={styles.question}>How are you feeling today?</ThemedText>
 
-        <View style={styles.moodContainer}>
-          {moods.map((mood, index) => (
+            <View style={styles.moodContainer}>
+              {moods.map((mood, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.moodButton,
+                    selectedMood === mood.label && styles.moodButtonSelected,
+                    { borderColor: mood.color },
+                  ]}
+                  onPress={() => setSelectedMood(mood.label)}
+                >
+                  <Text style={styles.moodEmoji} allowFontScaling={false}>{mood.emoji}</Text>
+                  <ThemedText style={styles.moodLabel}>{mood.label}</ThemedText>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={styles.thoughtsContainer}>
+              <ThemedText style={styles.thoughtsLabel}>What's on your mind?</ThemedText>
+              <TextInput
+                style={styles.thoughtsInput}
+                placeholder="Feeling overwhelmed with work today."
+                placeholderTextColor="#999"
+                multiline
+                numberOfLines={4}
+                value={thoughts}
+                onChangeText={setThoughts}
+              />
+            </View>
+
             <TouchableOpacity
-              key={index}
-              style={[
-                styles.moodButton,
-                selectedMood === mood.label && styles.moodButtonSelected,
-                { borderColor: mood.color },
-              ]}
-              onPress={() => setSelectedMood(mood.label)}
+              style={[styles.submitButton, (!selectedMood || isLoading) && styles.submitButtonDisabled]}
+              onPress={handleSubmit}
+              disabled={!selectedMood || isLoading}
             >
-              <Text style={styles.moodEmoji} allowFontScaling={false}>{mood.emoji}</Text>
-              <ThemedText style={styles.moodLabel}>{mood.label}</ThemedText>
+              <ThemedText style={styles.submitButtonText}>
+                {isLoading ? 'Generating...' : 'Submit'}
+              </ThemedText>
             </TouchableOpacity>
-          ))}
-        </View>
-
-        <View style={styles.thoughtsContainer}>
-          <ThemedText style={styles.thoughtsLabel}>What's on your mind?</ThemedText>
-          <TextInput
-            style={styles.thoughtsInput}
-            placeholder="Feeling overwhelmed with work today."
-            placeholderTextColor="#999"
-            multiline
-            numberOfLines={4}
-            value={thoughts}
-            onChangeText={setThoughts}
-          />
-        </View>
-
-        <TouchableOpacity
-          style={[styles.submitButton, (!selectedMood || isLoading) && styles.submitButtonDisabled]}
-          onPress={handleSubmit}
-          disabled={!selectedMood || isLoading}
-        >
-            <ThemedText style={styles.submitButtonText}>
-              {isLoading ? 'Generating...' : 'Submit'}
-            </ThemedText>
-          </TouchableOpacity>
-        </ScrollView>
+          </ScrollView>
         </View>
       </ImageBackground>
     </View>
@@ -165,11 +163,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#000',
   },
-  menuButton: {
+  placeholder: {
     width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   content: {
     flex: 1,

@@ -23,9 +23,7 @@ export default function TodaysTipScreen() {
               <IconSymbol name="chevron.left" size={24} color="#000" />
             </TouchableOpacity>
             <ThemedText style={styles.headerTitle}>DownTime</ThemedText>
-            <TouchableOpacity style={styles.menuButton}>
-              <IconSymbol name="line.3.horizontal" size={24} color="#000" />
-            </TouchableOpacity>
+            <View style={styles.placeholder} />
           </View>
 
           <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
@@ -90,11 +88,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#000',
   },
-  menuButton: {
+  placeholder: {
     width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   content: {
     flex: 1,
