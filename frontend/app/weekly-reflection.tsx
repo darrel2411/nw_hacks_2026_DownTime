@@ -60,18 +60,7 @@ export default function WeeklyReflectionScreen() {
             <ThemedText style={styles.tryThisText}>Take a 5-minute breathing break</ThemedText>
           </View>
         </View>
-
-        <TouchableOpacity
-          style={styles.tipButton}
-          onPress={() => router.push('/mood-checkin')}
-        >
-          <ThemedText style={styles.tipButtonText}>Check In Again</ThemedText>
-        </TouchableOpacity>
       </ScrollView>
-
-      <View style={styles.footer}>
-        <ThemedText style={styles.footerText}>DownTime</ThemedText>
-      </View>
     </ThemedView>
   );
 }
@@ -79,7 +68,7 @@ export default function WeeklyReflectionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#E0D8EA',
   },
   header: {
     flexDirection: 'row',
@@ -112,13 +101,16 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 20,
+    paddingTop: 25,
     paddingBottom: 100,
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#000',
+    marginTop: 5,
     marginBottom: 8,
+    paddingTop: 5,
     textAlign: 'center',
   },
   subtitle: {
@@ -201,29 +193,5 @@ const styles = StyleSheet.create({
     color: '#000',
     marginLeft: 12,
     fontWeight: '500',
-  },
-  tipButton: {
-    backgroundColor: '#4A90E2',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  tipButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  footer: {
-    paddingVertical: 20,
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-  },
-  footerText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#4A90E2',
   },
 });
