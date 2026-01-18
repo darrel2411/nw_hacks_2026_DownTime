@@ -130,7 +130,7 @@ export default function SignupScreen() {
 
             {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
 
-            <View style={styles.separator}>
+            {/* <View style={styles.separator}>
               <View style={styles.separatorLine} />
               <ThemedText style={styles.separatorText}>or</ThemedText>
               <View style={styles.separatorLine} />
@@ -143,7 +143,7 @@ export default function SignupScreen() {
                 contentFit="contain"
               />
               <ThemedText style={styles.googleButtonText}>Continue with Google</ThemedText>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
             <TouchableOpacity style={styles.loginLink} onPress={() => router.push('/login')}>
               <ThemedText style={styles.loginText}>Already have an account? Log In</ThemedText>
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 10,
-    marginBottom: 30,
+    marginBottom: 20,
   },
   signupButtonDisabled: {
     backgroundColor: '#CCCCCC',
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   loginLink: {
-    marginTop: 20,
+    marginTop: 10,
     alignItems: 'center',
   },
   loginText: {
