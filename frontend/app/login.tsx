@@ -133,8 +133,10 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     color: '#FFFFFF',
+    marginTop: 10,
     marginBottom: 40,
     textAlign: 'center',
+    paddingTop: 5,
   },
   inputContainer: {
     marginBottom: 20,

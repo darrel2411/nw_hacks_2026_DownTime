@@ -95,13 +95,16 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 20,
+    paddingTop: 25,
     paddingBottom: 100,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#000',
+    marginTop: 5,
     marginBottom: 16,
+    paddingTop: 5,
     textAlign: 'center',
   },
   tipText: {

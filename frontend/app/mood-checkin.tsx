@@ -131,13 +131,16 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 20,
+    paddingTop: 25,
   },
   question: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#2C2C2C',
+    marginTop: 5,
     marginBottom: 30,
     textAlign: 'center',
+    paddingTop: 5,
     textShadowColor: 'rgba(255, 255, 255, 0.5)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
