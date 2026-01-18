@@ -163,7 +163,7 @@ export default function LoginScreen() {
               <ThemedText style={styles.errorText}>{error}</ThemedText>
             ) : null}
 
-            <View style={styles.separator}>
+            {/* <View style={styles.separator}>
               <View style={styles.separatorLine} />
               <ThemedText style={styles.separatorText}>or</ThemedText>
               <View style={styles.separatorLine} />
@@ -180,7 +180,7 @@ export default function LoginScreen() {
               <ThemedText style={styles.googleButtonText}>
                 Continue with Google
               </ThemedText>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
             <TouchableOpacity
               style={styles.signUpLink}
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: "center",
-    marginBottom: 30,
+    marginBottom: 20,
   },
   loginButtonDisabled: {
     backgroundColor: "#CCCCCC",
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   signUpLink: {
-    marginTop: 20,
+    marginTop: 10,
     alignItems: "center",
   },
   signUpText: {
