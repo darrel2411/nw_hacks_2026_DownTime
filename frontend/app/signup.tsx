@@ -1,4 +1,4 @@
-import { StyleSheet, View, TextInput, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { ImageBackground } from '@/components/image-background';
 import { ThemedText } from '@/components/themed-text';
@@ -12,6 +12,37 @@ export default function SignupScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [retypePassword, setRetypePassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001';
+
+  const handleSignup = async () => {
+    if (!email || !password || password !== retypePassword) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${apiUrl}/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const message = body?.error || 'Failed to sign up';
+        setError(message);
+        return;
+      }
+
+      await res.json();
+      router.replace('/mood-checkin');
+    } catch (err) {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <ThemedView style={styles.container}>
@@ -67,12 +98,21 @@ export default function SignupScreen() {
             </View>
 
             <TouchableOpacity
-              style={[styles.signupButton, (!email || !password || password !== retypePassword) && styles.signupButtonDisabled]}
-              onPress={() => router.push('/mood-checkin')}
-              disabled={!email || !password || password !== retypePassword}
+              style={[
+                styles.signupButton,
+                (!email || !password || password !== retypePassword || loading) && styles.signupButtonDisabled,
+              ]}
+              onPress={handleSignup}
+              disabled={!email || !password || password !== retypePassword || loading}
             >
-              <ThemedText style={styles.signupButtonText}>Sign Up</ThemedText>
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <ThemedText style={styles.signupButtonText}>Sign Up</ThemedText>
+              )}
             </TouchableOpacity>
+
+            {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
 
             <View style={styles.separator}>
               <View style={styles.separatorLine} />
@@ -230,5 +270,12 @@ const styles = StyleSheet.create({
     color: '#4A90E2',
     fontSize: 16,
     fontWeight: '500',
+  },
+  errorText: {
+    color: '#ffefef',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 20,
+    fontWeight: '600',
   },
 });
